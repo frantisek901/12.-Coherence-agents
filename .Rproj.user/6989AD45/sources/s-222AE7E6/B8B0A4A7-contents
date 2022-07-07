@@ -1,0 +1,38 @@
+#### Script for reading, cleaning and preparing data for other phases of procet of Group 12
+
+## Encoding: windows-1250
+## Edited:   2022-07-07 FranČesko
+
+
+## NOTES:
+#
+#
+#
+#
+
+
+
+# Header ------------------------------------------------------------------
+
+# cleaning the environment:
+rm(list=ls())
+
+
+# Loading packages:
+library(readr)
+library(tibble)
+library(dplyr)
+library(forcats)
+library(writexl)
+
+
+
+# Loading and cleaning data -----------------------------------------------
+
+df = read_csv('ESS9e03_1.csv')
+
+glimpse(df)
+
+
+
+

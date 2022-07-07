@@ -1,0 +1,11 @@
+About the resources in this folder...
+
+* data -- the data needed in a subfolder for the PaCE_Austria_voting model described in SSC2021 (paper and slides) and SSC2022_paper
+* Abstract Coherence model.nlogo -- a toy model with influence based upon a coherence model of beliefs, described in Edmonds2020
+* ANES data.zip -- one download of the ANES survey data, for year 2000
+* SSC2022_paper.pdf -- paper looking at the co-development of social network and beliefs in Austria voting model
+* SSC2021_p104_slides.pdf -- slides about the Austrian voter model
+* SSC2021+p104.pdf -- original paper about the Austrian voter model
+* Edmonds2020_Article_Co-developingBeliefsAndSocialI.pdf -- paper about the abstract Coherence model
+* Van20Zomeren20Postmes20Spears202008.pdf -- a paper describing an integrated account of social identity
+* Belief Network Analysis- A Relational Approach to Understanding the Structure of Attitudes AJS 691274.pdf -- an analysis of the ANES data working out the network of correlations between beliefs in that case
