@@ -29,7 +29,12 @@ library(writexl)
 
 # Loading and cleaning data -----------------------------------------------
 
-df = read_csv('ESS9e03_1.csv')
+# Reading data from .csv file:
+df = read_csv('ESS9e03_1.csv') %>% 
+  
+  # Selection of needed variables:
+  select(ipcrtiv:impfun, freehms, gincdif, lrscale, impcntr, euftf)
+
 
 glimpse(df)
 
