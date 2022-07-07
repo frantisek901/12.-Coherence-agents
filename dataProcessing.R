@@ -33,7 +33,7 @@ library(writexl)
 df = read_csv('ESS9e03_1.csv') %>% 
   
   # Selection of needed variables:
-  select(ipcrtiv:impfun, freehms, gincdif, lrscale, impcntr, euftf)
+  select(freehms, gincdif, lrscale, impcntr, euftf, ipcrtiv:impfun)
 
 
 glimpse(df)
