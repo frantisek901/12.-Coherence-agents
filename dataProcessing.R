@@ -1,7 +1,7 @@
 #### Script for reading, cleaning and preparing data for other phases of procet of Group 12
 
 ## Encoding: windows-1250
-## Edited:   2022-07-07 FranÈesko
+## Edited:   2022-07-07 FranÃˆesko
 
 
 ## NOTES:
@@ -43,6 +43,31 @@ df = read_csv('ESS9e03_1.csv') %>%
   
   # Another filtering -- cases where misses at least one human value are deleted:
   rowwise() %>% filter(sum(across(ipcrtiv:impfun, ~ .x<=6 )) == 21) %>% ungroup()
+
+
+df_s =df %>% 
+  mutate(
+   across(c(freehms, gincdif), ~ 1 - (.x - 1)/(5-1)), 
+   across(c(lrscale, euftf), ~ 1 - (.x - 0)/(10-0)), 
+   impcntr = 1 - (impcntr - 1)/(4-1)
+  )
+
+library(corrplot)
+
+df_s$freehms <- df_s$freehms * -1
+df_s$gincdif <- df_s$gincdif * -1
+df_s$impcntr <- df_s$impcntr * -1
+
+
+glimpse(df_s)
+
+#install.packages('corrplot')
+
+df_cor <- df_s[1:5]
+
+x <- cor(df_cor)
+corrplot(x, method='number')
+
 
 
 # Quick look at the resulting file:
