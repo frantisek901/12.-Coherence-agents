@@ -1,7 +1,7 @@
 #### Script for reading, cleaning and preparing data for other phases of procet of Group 12
 
 ## Encoding: windows-1250
-## Edited:   2022-07-07 FranÈesko
+## Edited:   2022-07-07 FranÃ?esko
 
 
 ## NOTES:
@@ -45,8 +45,41 @@ df = read_csv('ESS9e03_1.csv') %>%
   rowwise() %>% filter(sum(across(ipcrtiv:impfun, ~ .x<=6 )) == 21) %>% ungroup()
 
 
-# Quick look at the resulting file:
-glimpse(df)
+df_s =df %>% 
+  mutate(
+   across(c(freehms, gincdif), ~ 1 - (.x - 1)/(5-1)), 
+   across(c(lrscale, euftf), ~ 1 - (.x - 0)/(10-0)), 
+   impcntr = 1 - (impcntr - 1)/(4-1)
+  )
+
+library(corrplot)
+
+df_s$freehms <- df_s$freehms * -1
+df_s$gincdif <- df_s$gincdif * -1
+df_s$impcntr <- df_s$impcntr * -1
+
+
+glimpse(df_s)
+
+#install.packages('corrplot')
+
+df_cor <- df_s[1:5]
+
+x <- cor(df_cor)
+corrplot(x, method='number')
+
+# Frequencies of values -- TODO: Rewrite it in some more inteligent way! 'rstatix' package here might help!
+table(df$freehms)
+table(df$gincdif)
+table(df$lrscale)
+table(df$impcntr)
+table(df$euftf)
+table(df$imprich)
+table(df$impfun)
+
+
+
+
 
 # Human values computation
 
@@ -96,31 +129,3 @@ mds <- df_ten |> select(Openness:SelfTranscendence) |> t() |> dist() |>
   cmdscale(eig = TRUE, k =2)
 plot(mds$points[,1],mds$points[,2])
 text(mds$points[,1],mds$points[,2],labels = row.names(mds$points))
-
-
-
-
-# Conformity       7,16
-# Tradition        9,20
-# Benevolence      12,18
-# Universalism     3,8,19
-# Self-Direction   1,11
-# Stimulation      6,15
-# Hedonism         10,21
-# Achievement      4,13
-# Power            2,17
-# Security         5,14
-
-
-
-=======
-# Frequencies of values -- TODO: Rewrite it in some more inteligent way! 'rstatix' package here might help!
-table(df$freehms)
-table(df$gincdif)
-table(df$lrscale)
-table(df$impcntr)
-table(df$euftf)
-table(df$imprich)
-table(df$impfun)
-# GREAT! File is clean!
->>>>>>> 88339e351a989f61831ba4742b76067c51fc838f
