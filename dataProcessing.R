@@ -32,7 +32,7 @@ library(corrplot)
 library(tidyverse)
 
 # Loading and cleaning data -----------------------------------------------
-
+raw = read_csv('ESS9e03_1.csv') 
 # Reading data from .csv file:
 df = read_csv('ESS9e03_1.csv') %>% 
   # Selection of needed variables:
@@ -119,3 +119,26 @@ mds <- df_ten |> select(Openness:SelfTranscendence) |> t() |> dist() |>
   cmdscale(eig = TRUE, k =2)
 plot(mds$points[,1],mds$points[,2])
 text(mds$points[,1],mds$points[,2],labels = row.names(mds$points))
+
+
+
+
+# Correlations on Subgroups
+
+DF <- df |> left_join(df_four)
+DF |> select(attitudenames) |>  cor() |> corrplot(method='number')
+DF |> filter(Value1 == "SelfEnhancement") |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number')
+DF |> filter(Value1 == "Openness") |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number')
+DF |> filter(Value1 == "Conservation") |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number')
+
+
+DF |> left_join(raw) |> filter(atchctr < 8, atchctr <= 10) |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number')
+DF |> left_join(raw) |> filter(pray < 6, atchctr <= 7) |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number')
+
+# Principal Component Analysis
+DF |> select(attitudenames) |>  prcomp()
