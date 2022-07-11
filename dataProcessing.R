@@ -32,11 +32,11 @@ library(corrplot)
 library(tidyverse)
 
 # Loading and cleaning data -----------------------------------------------
-raw = read_csv('ESS9e03_1_total.csv') 
+raw = read_csv('ESS9e03_1') 
 # Reading data 
 # from .csv file:
 
-df = read_csv('ESS9e03_1_total.csv') %>% 
+df = read_csv('ESS9e03_1.csv') %>% 
   # Selection of needed variables:
   select(idno, freehms, gincdif, lrscale, impcntr, euftf, ipcrtiv:impfun) %>% 
   # Filtering the cases -- cases with missing values on believes variables deleted:
