@@ -32,9 +32,11 @@ library(corrplot)
 library(tidyverse)
 
 # Loading and cleaning data -----------------------------------------------
-raw = read_csv('ESS9e03_1.csv') 
-# Reading data from .csv file:
-df = read_csv('ESS9e03_1.csv') %>% 
+raw = read_csv('ESS9e03_1_total.csv') 
+# Reading data 
+# from .csv file:
+
+df = read_csv('ESS9e03_1_total.csv') %>% 
   # Selection of needed variables:
   select(idno, freehms, gincdif, lrscale, impcntr, euftf, ipcrtiv:impfun) %>% 
   # Filtering the cases -- cases with missing values on believes variables deleted:
@@ -71,6 +73,7 @@ df_cor <- df_s[attitudenames]
 x <- cor(df_cor)
 corrplot(x, method='number')
 
+glimpse
 
 # Human values computation -----------------------------------------------------
 
@@ -127,12 +130,21 @@ text(mds$points[,1],mds$points[,2],labels = row.names(mds$points))
 
 DF <- df |> left_join(df_four)
 DF |> select(attitudenames) |>  cor() |> corrplot(method='number')
-DF |> filter(Value1 == "SelfEnhancement") |> 
+matrix1 <- DF |> filter(ValueType == "SelfEnhancement") |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value')
+matrix2 <- DF |> filter(ValueType == "Openness") |> 
   select(attitudenames) |>  cor() |> corrplot(method='number')
-DF |> filter(Value1 == "Openness") |> 
+matrix3 <- DF |> filter(ValueType == "Conservation") |> 
   select(attitudenames) |>  cor() |> corrplot(method='number')
-DF |> filter(Value1 == "Conservation") |> 
+matrix3 <- DF |> filter(ValueType == "Erratic") |> 
   select(attitudenames) |>  cor() |> corrplot(method='number')
+# install.packages('gridExtra')
+# library(gridExtra)
+# grid.arrange(matrix1, matrix2, matrix3)
+
+table(DF$ValueType)
+
+
 
 
 DF |> left_join(raw) |> filter(atchctr < 8, atchctr <= 10) |> 
