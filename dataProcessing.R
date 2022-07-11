@@ -80,21 +80,22 @@ corrplot(x, method='number')
 
 valuenames <- c("ipcrtiv", "imprich", "ipeqopt", "ipshabt", "impsafe", "impdiff", "ipfrule", "ipudrst", 
   "ipmodst", "ipgdtim", "impfree", "iphlppl", "ipsuces", "ipstrgv", "ipadvnt", "ipbhprp",
-  "iprspot", "iplylfr", "impenv",  "imptrad", "impfun")  
+  "iprspot", "iplylfr", "impenv",  "imptrad", "impfun") 
 
-df_ten <- df |> select(idno, ipcrtiv:impfun) |> rowwise() |> 
-  mutate(Conformity = mean(c_across(valuenames[c(7,16)])),
-         Tradition = mean(c_across(valuenames[c(9,20)])),
-         Benevolence = mean(c_across(valuenames[c(12,18)])),
-         Universalism = mean(c_across(valuenames[c(3,8,19)])),
-         SelfDirection = mean(c_across(valuenames[c(1,11)])),
-         Stimulation = mean(c_across(valuenames[c(6,15)])),
-         Hedonism = mean(c_across(valuenames[c(10,21)])),
-         Achievement = mean(c_across(valuenames[c(4,13)])),
-         Power = mean(c_across(valuenames[c(2,17)])),
-         Security = mean(c_across(valuenames[c(5,14)])),
-         mrat = mean(c_across(ipcrtiv:impfun)),
-         mrat_median = median(c_across(ipcrtiv:impfun))) |> 
+df_ten <- df |> select(idno, ipcrtiv:impfun) |> #rowwise() |> 
+  mutate(Conformity = (!!sym(valuenames[7]) + !!sym(valuenames[16])/2),
+         Tradition = (!!sym(valuenames[9]) + !!sym(valuenames[20])/2),
+         Benevolence = (!!sym(valuenames[12]) + !!sym(valuenames[18])/2),
+         Universalism = (!!sym(valuenames[3]) + !!sym(valuenames[8]) + !!sym(valuenames[19])/3),
+         SelfDirection = (!!sym(valuenames[1]) + !!sym(valuenames[11])/2),
+         Stimulation = (!!sym(valuenames[6]) + !!sym(valuenames[15])/2),
+         Hedonism = (!!sym(valuenames[10]) + !!sym(valuenames[21])/2),
+         Achievement = (!!sym(valuenames[4]) + !!sym(valuenames[13])/2),
+         Power = (!!sym(valuenames[2]) + !!sym(valuenames[17])/2),
+         Security = (!!sym(valuenames[5]) + !!sym(valuenames[14])/2),
+         mrat = (ipcrtiv + imprich + ipeqopt + ipshabt + impsafe + impdiff + ipfrule + ipudrst + 
+           ipmodst + ipgdtim + impfree + iphlppl + ipsuces + ipstrgv + ipadvnt + ipbhprp +
+           iprspot + iplylfr + impenv + imptrad + impfun)/21) |> 
   ungroup() |> 
   mutate(across(Conformity:Security, function(x) x - mrat)) |> 
   mutate(Openness = (SelfDirection + Stimulation)/2,
