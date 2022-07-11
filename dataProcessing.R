@@ -1,7 +1,7 @@
 #### Script for reading, cleaning and preparing data for other phases of procet of Group 12
 
 ## Encoding: windows-1250
-## Edited:   2022-07-07 FranÃ?esko
+## Edited:   2022-07-07 FranÄ‚?esko
 
 
 ## NOTES:
@@ -11,7 +11,9 @@
 # 2) generating of frequency table is not neat -- we might rewrite in more concise way,
 #  'rstatix' package, or 'sjmisc' package might help here (Jan would love 'sjmisc', it mimics STATA!)
 #
-#
+# 3) scaling of the values and finding correlations is done
+# 
+# 4) Human values are transformed into Schwartz values 
 
 
 # Header ------------------------------------------------------------------
@@ -26,68 +28,56 @@ library(tibble)
 library(dplyr)
 library(forcats)
 library(writexl)
-
-
+library(corrplot) 
+library(tidyverse)
 
 # Loading and cleaning data -----------------------------------------------
-
+raw = read_csv('ESS9e03_1.csv') 
 # Reading data from .csv file:
 df = read_csv('ESS9e03_1.csv') %>% 
-  
   # Selection of needed variables:
   select(idno, freehms, gincdif, lrscale, impcntr, euftf, ipcrtiv:impfun) %>% 
-  
   # Filtering the cases -- cases with missing values on believes variables deleted:
   filter(freehms <= 5, gincdif <= 5, impcntr <= 4, 
-         lrscale <= 10, euftf <= 10) %>% 
-  
-  # Another filtering -- cases where misses at least one human value are deleted:
-  rowwise() %>% filter(sum(across(ipcrtiv:impfun, ~ .x<=6 )) == 21) %>% ungroup()
+         lrscale <= 10, euftf <= 10) 
+
+# %>% 
+#   # Another filtering -- cases where misses at least one human value are deleted:
+#   rowwise() %>% filter(sum(across(ipcrtiv:impfun, ~ .x<=6 )) == 21) %>% ungroup()
 
 
+# Transform attitude items and calculate correlations -------------------------
+
+# Scaling data to values within [-1, 1]. 
+# v' = -1 + 2* (v-m)/(M-m), where m is the lowest, M the highest possible answer
 df_s =df %>% 
   mutate(
-   across(c(freehms, gincdif), ~ 1 - (.x - 1)/(5-1)), 
-   across(c(lrscale, euftf), ~ 1 - (.x - 0)/(10-0)), 
-   impcntr = 1 - (impcntr - 1)/(4-1)
+   across(c(freehms, gincdif), ~ -1 + (.x - 1)/(5-1)), 
+   across(c(lrscale, euftf), ~ -1 + (.x - 0)/(10-0)), 
+   impcntr = -1 + (impcntr - 1)/(4-1)
   )
 
-library(corrplot)
-
+# Flipping some scales:
+# some questions are asked in a "negative" sense: 
+# e.g. -1 --> "more immigrants" and 1 --> "less immigrants"
+# we flip the sign of these questions. 
 df_s$freehms <- df_s$freehms * -1
 df_s$gincdif <- df_s$gincdif * -1
 df_s$impcntr <- df_s$impcntr * -1
 
-
-glimpse(df_s)
-
-#install.packages('corrplot')
-
-df_cor <- df_s[1:5]
-
+# calculate correlation coefficients of the value dimensions
+attitudenames = c("freehms", "gincdif", "lrscale", "impcntr", "euftf")
+df_cor <- df_s[attitudenames]
 x <- cor(df_cor)
 corrplot(x, method='number')
 
-# Frequencies of values -- TODO: Rewrite it in some more inteligent way! 'rstatix' package here might help!
-table(df$freehms)
-table(df$gincdif)
-table(df$lrscale)
-table(df$impcntr)
-table(df$euftf)
-table(df$imprich)
-table(df$impfun)
 
-
-
-
-
-# Human values computation
+# Human values computation -----------------------------------------------------
 
 valuenames <- c("ipcrtiv", "imprich", "ipeqopt", "ipshabt", "impsafe", "impdiff", "ipfrule", "ipudrst", 
   "ipmodst", "ipgdtim", "impfree", "iphlppl", "ipsuces", "ipstrgv", "ipadvnt", "ipbhprp",
   "iprspot", "iplylfr", "impenv",  "imptrad", "impfun")  
 
-library(tidyverse)
 df_ten <- df |> select(idno, ipcrtiv:impfun) |> rowwise() |> 
   mutate(Conformity = mean(c_across(valuenames[c(7,16)])),
          Tradition = mean(c_across(valuenames[c(9,20)])),
@@ -129,3 +119,26 @@ mds <- df_ten |> select(Openness:SelfTranscendence) |> t() |> dist() |>
   cmdscale(eig = TRUE, k =2)
 plot(mds$points[,1],mds$points[,2])
 text(mds$points[,1],mds$points[,2],labels = row.names(mds$points))
+
+
+
+
+# Correlations on Subgroups
+
+DF <- df |> left_join(df_four)
+DF |> select(attitudenames) |>  cor() |> corrplot(method='number')
+DF |> filter(Value1 == "SelfEnhancement") |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number')
+DF |> filter(Value1 == "Openness") |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number')
+DF |> filter(Value1 == "Conservation") |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number')
+
+
+DF |> left_join(raw) |> filter(atchctr < 8, atchctr <= 10) |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number')
+DF |> left_join(raw) |> filter(pray < 6, atchctr <= 7) |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number')
+
+# Principal Component Analysis
+DF |> select(attitudenames) |>  prcomp()
