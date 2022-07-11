@@ -1,7 +1,7 @@
-#### Script for reading, cleaning and preparing data for other phases of procet of Group 12
+#### Script for reading, cleaning and preparing data for other phases of project of Group 12
 
 ## Encoding: windows-1250
-## Edited:   2022-07-07 FranĂ?esko
+## Edited:   2022-07-11 FranCesko
 
 
 ## NOTES:
@@ -42,8 +42,7 @@ df = read_csv('ESS9e03_1.csv') %>%
   # Filtering the cases -- cases with missing values on believes variables deleted:
   filter(freehms <= 5, gincdif <= 5, impcntr <= 4, 
          lrscale <= 10, euftf <= 10) 
-
-# %>% 
+# %>%
 #   # Another filtering -- cases where misses at least one human value are deleted:
 #   rowwise() %>% filter(sum(across(ipcrtiv:impfun, ~ .x<=6 )) == 21) %>% ungroup()
 
@@ -58,6 +57,11 @@ df_s =df %>%
    across(c(lrscale, euftf), ~ -1 + (.x - 0)/(10-0)), 
    impcntr = -1 + (impcntr - 1)/(4-1)
   )
+## BEWARE!!! This code produces scale [-1, 0], not [-1, +1],
+## conceptually it makes no difference, we have all at the same scale, 
+## but it's not the intended scale.
+
+
 
 # Flipping some scales:
 # some questions are asked in a "negative" sense: 
@@ -79,21 +83,22 @@ glimpse
 
 valuenames <- c("ipcrtiv", "imprich", "ipeqopt", "ipshabt", "impsafe", "impdiff", "ipfrule", "ipudrst", 
   "ipmodst", "ipgdtim", "impfree", "iphlppl", "ipsuces", "ipstrgv", "ipadvnt", "ipbhprp",
-  "iprspot", "iplylfr", "impenv",  "imptrad", "impfun")  
+  "iprspot", "iplylfr", "impenv",  "imptrad", "impfun") 
 
-df_ten <- df |> select(idno, ipcrtiv:impfun) |> rowwise() |> 
-  mutate(Conformity = mean(c_across(valuenames[c(7,16)])),
-         Tradition = mean(c_across(valuenames[c(9,20)])),
-         Benevolence = mean(c_across(valuenames[c(12,18)])),
-         Universalism = mean(c_across(valuenames[c(3,8,19)])),
-         SelfDirection = mean(c_across(valuenames[c(1,11)])),
-         Stimulation = mean(c_across(valuenames[c(6,15)])),
-         Hedonism = mean(c_across(valuenames[c(10,21)])),
-         Achievement = mean(c_across(valuenames[c(4,13)])),
-         Power = mean(c_across(valuenames[c(2,17)])),
-         Security = mean(c_across(valuenames[c(5,14)])),
-         mrat = mean(c_across(ipcrtiv:impfun)),
-         mrat_median = median(c_across(ipcrtiv:impfun))) |> 
+df_ten <- df |> select(idno, ipcrtiv:impfun) |> #rowwise() |> 
+  mutate(Conformity = (!!sym(valuenames[7]) + !!sym(valuenames[16])/2),
+         Tradition = (!!sym(valuenames[9]) + !!sym(valuenames[20])/2),
+         Benevolence = (!!sym(valuenames[12]) + !!sym(valuenames[18])/2),
+         Universalism = (!!sym(valuenames[3]) + !!sym(valuenames[8]) + !!sym(valuenames[19])/3),
+         SelfDirection = (!!sym(valuenames[1]) + !!sym(valuenames[11])/2),
+         Stimulation = (!!sym(valuenames[6]) + !!sym(valuenames[15])/2),
+         Hedonism = (!!sym(valuenames[10]) + !!sym(valuenames[21])/2),
+         Achievement = (!!sym(valuenames[4]) + !!sym(valuenames[13])/2),
+         Power = (!!sym(valuenames[2]) + !!sym(valuenames[17])/2),
+         Security = (!!sym(valuenames[5]) + !!sym(valuenames[14])/2),
+         mrat = (ipcrtiv + imprich + ipeqopt + ipshabt + impsafe + impdiff + ipfrule + ipudrst + 
+           ipmodst + ipgdtim + impfree + iphlppl + ipsuces + ipstrgv + ipadvnt + ipbhprp +
+           iprspot + iplylfr + impenv + imptrad + impfun)/21) |> 
   ungroup() |> 
   mutate(across(Conformity:Security, function(x) x - mrat)) |> 
   mutate(Openness = (SelfDirection + Stimulation)/2,
