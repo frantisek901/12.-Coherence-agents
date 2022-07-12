@@ -32,9 +32,12 @@ library(corrplot)
 library(tidyverse)
 
 # Loading and cleaning data -----------------------------------------------
-raw = read_csv('ESS9e03_1') 
+raw = read_csv('ESS9e03_1.csv') 
 # Reading data 
 # from .csv file:
+df <- raw |> 
+  filter(cntry=="DE")  |>
+  filter(prtclede<10)
 
 df = read_csv('ESS9e03_1.csv') %>% 
   # Selection of needed variables:
@@ -61,7 +64,7 @@ df_s =df %>%
 ## conceptually it makes no difference, we have all at the same scale, 
 ## but it's not the intended scale.
 
-
+table(raw$prtclede)
 
 # Flipping some scales:
 # some questions are asked in a "negative" sense: 
@@ -119,6 +122,34 @@ df_four <- df_ten[sample(nrow(df_ten)),] |>
               Value2 == "Openness" & Value1 == "Conservation") |> 
   mutate(ValueType = if_else(Consistent, Value1, "Erratic"))
 
+##
+df_four <- df_ten[sample(nrow(df_ten)),] |> 
+  select(idno, Openness:SelfTranscendence) |> 
+  pivot_longer(Openness:SelfTranscendence) |> 
+  group_by(idno) |> 
+  mutate(rank = rank(value)) |> 
+  group_by(idno) |> 
+  summarize(Value1 = name[value == max(value)][1],
+            howmanymaxequal= sum(value==max( value[value!=max(value)] )),
+            Value2 = name[value == min(value)][1],
+            Consistent =
+              str_starts(Value1,"Self") & str_starts(Value2,"Self") |
+              Value1 == "Openness" & Value2 == "Conservation" |
+              Value2 == "Openness" & Value1 == "Conservation") |> 
+   mutate(ValueType = if_else(Consistent, Value1, if_else(howmanymaxequal<2, "Erratic", "2max"))) 
+
+# mutate(ValueType = if_else(howmanymaxequal<2, Value1, "2max")) |>
+ 
+
+###
+
+table(df_four$howmanymaxequal)
+table(df_four$ValueType)
+
+x <- c(0.1,1,2,3,2,3)
+sum(x==max( x[x!=max(x)] ))
+
+
 mds <- df_ten |> select(Conformity:Security) |> t() |> dist() |> 
   cmdscale(eig = TRUE, k =2)
 plot(mds$points[,1],mds$points[,2])
@@ -127,6 +158,8 @@ mds <- df_ten |> select(Openness:SelfTranscendence) |> t() |> dist() |>
   cmdscale(eig = TRUE, k =2)
 plot(mds$points[,1],mds$points[,2])
 text(mds$points[,1],mds$points[,2],labels = row.names(mds$points))
+
+
 
 
 
@@ -149,6 +182,23 @@ matrix3 <- DF |> filter(ValueType == "Erratic") |>
 
 table(DF$ValueType)
 
+
+#### Clustering by political party
+
+table(df$prtclede)
+
+matrix1 <- df |> filter(prtclede == 1) |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value')
+matrix1 <- df |> filter(prtclede == 2) |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value')
+matrix1 <- df |> filter(prtclede == 3) |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value')
+matrix1 <- df |> filter(prtclede == 4) |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value')
+matrix1 <- df |> filter(prtclede == 5) |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value')
+matrix1 <- df |> filter(prtclede == 6) |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value')
 
 
 
