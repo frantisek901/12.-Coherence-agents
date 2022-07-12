@@ -38,54 +38,45 @@ library(ggplot2)
 # Loading and cleaning data -----------------------------------------------
 raw = read_csv('ESS9e03_1.csv')
 #raw = read_csv("ESS9e03_1_complete.csv")
-# Reading data 
-# from .csv file:
-df <- raw %>% 
-  filter(prtclede<10)  %>%
-  # Selection of needed variables:
-  select(idno,cntry, prtclede, freehms, gincdif, lrscale, impcntr, euftf, ipcrtiv:impfun) %>% 
-  # Filtering the cases -- cases with missing values on believes variables deleted:
-  filter(freehms <= 5, gincdif <= 5, impcntr <= 4, 
-         lrscale <= 10, euftf <= 10)
-  #dplyr::select(idno, freehms, gincdif, lrscale, impcntr, euftf, cntry, ipcrtiv:impfun) %>% 
-  # Filtering the cases -- cases with missing values on believes variables deleted:
-  #filter(freehms <= 5, gincdif <= 5, impcntr <= 4, lrscale <= 10, euftf <= 10) 
-
-
-# %>%
-#   # Another filtering -- cases where misses at least one human value are deleted:
-#   rowwise() %>% filter(sum(across(ipcrtiv:impfun, ~ .x<=6 )) == 21) %>% ungroup()
 
 
 # Transform attitude items and calculate correlations -------------------------
-
 # Scaling data to values within [-1, 1]. 
 # v' = -1 + 2 * (v-m)/(M-m), where m is the lowest, M the highest possible answer
-df_s =df %>% 
+dffull <-  raw %>% 
+  # Filtering the cases -- cases with missing values on believes variables deleted:
+  filter(freehms <= 5, gincdif <= 5, impcntr <= 4, 
+         lrscale <= 10, euftf <= 10)%>%
   mutate(
-   across(c(freehms, gincdif), ~ -1 + 2 * (.x - 1)/(5-1)), 
-   across(c(lrscale, euftf), ~ -1 + 2 * (.x - 0)/(10-0)), 
-   impcntr = -1 + 2* (impcntr - 1)/(4-1)
-  )
-
-
-table(df_s$prtclede)
-
+  across(c(freehms, gincdif), ~ -1 + 2 * (.x - 1)/(5-1)), 
+  across(c(lrscale, euftf), ~ -1 + 2 * (.x - 0)/(10-0)), 
+  impcntr = -1 + 2* (impcntr - 1)/(4-1)
+)
 # Flipping some scales:
 # some questions are asked in a "negative" sense: 
 # e.g. -1 --> "more immigrants" and 1 --> "less immigrants"
 # we flip the sign of these questions. 
-df_s$freehms <- df_s$freehms * -1
-df_s$gincdif <- df_s$gincdif * -1
-df_s$impcntr <- df_s$impcntr * -1
+dffull$freehms <- dffull$freehms * -1
+dffull$gincdif <- dffull$gincdif * -1
+dffull$impcntr <- dffull$impcntr * -1
 
-df_s_g <- df |> 
+dfsel <- dffull %>%
+  select(idno,cntry, prtclede, freehms, gincdif, lrscale, impcntr, euftf, ipcrtiv:impfun)
+
+# filter out GERMANY
+dffull_g = dffull   |> 
   filter(cntry=="DE")
+dfsel_g = dfsel |> 
+  filter(cntry=="DE")
+
+table(dfsel$prtclede)
+dfsel_gp <- dfsel_g %>%
+  filter(prtclede<10)
 
 # calculate correlation coefficients of the value dimensions
 attitudenames = c("freehms", "gincdif", "lrscale", "impcntr", "euftf")
 columns = append(attitudenames, "idno", after=0)
-df_cor <- df_s[columns]
+df_cor <- dfsel[columns]
 x <- cor(df_cor[attitudenames])
 corrplot(x, method='number')
 
@@ -97,7 +88,7 @@ valuenames <- c("ipcrtiv", "imprich", "ipeqopt", "ipshabt", "impsafe", "impdiff"
   "ipmodst", "ipgdtim", "impfree", "iphlppl", "ipsuces", "ipstrgv", "ipadvnt", "ipbhprp",
   "iprspot", "iplylfr", "impenv",  "imptrad", "impfun") 
 
-df_ten <- df |> dplyr::select(idno, ipcrtiv:impfun, cntry) |> #rowwise() |> 
+df_ten <- dfsel |> dplyr::select(idno, ipcrtiv:impfun, cntry) |> #rowwise() |> 
   mutate(Conformity = (!!sym(valuenames[7]) + !!sym(valuenames[16])/2),
          Tradition = (!!sym(valuenames[9]) + !!sym(valuenames[20])/2),
          Benevolence = (!!sym(valuenames[12]) + !!sym(valuenames[18])/2),
@@ -164,7 +155,7 @@ text(mds$points[,1],mds$points[,2],labels = row.names(mds$points))
 
 # Correlations on Subgroups
 
-DF <- df_s |> left_join(df_four)
+DF <- dfsel |> left_join(df_four)
 DF |> select(attitudenames) |>  cor() |> corrplot(method='number')
 matrixS<- DF |> filter(ValueType == "SelfEnhancement") |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value')
@@ -181,19 +172,19 @@ table(DF$ValueType)
 
 #### Clustering by political party
 
-table(df_s$prtclede)
+table(dfsel$prtclede)
 
-matrixCDU <- df_s |> filter(prtclede == 1) |> 
+matrixCDU <- dfsel_g |> filter(prtclede == 1) |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="CDU/CSU", mar=c(0,0,1,0))
-matrixSPD <- df_s |> filter(prtclede == 2) |> 
+matrixSPD <- dfsel_g |> filter(prtclede == 2) |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="SPD", mar=c(0,0,1,0))
-matrixLEFT <- df_s |> filter(prtclede == 3) |> 
+matrixLEFT <- dfsel_g |> filter(prtclede == 3) |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="Left", mar=c(0,0,1,0))
-matrixGREEN <- df_s |> filter(prtclede == 4) |> 
+matrixGREEN <- dfsel_g |> filter(prtclede == 4) |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="Greens", mar=c(0,0,1,0))
-matrixFDP <- df_s |> filter(prtclede == 5) |> 
+matrixFDP <- dfsel_g |> filter(prtclede == 5) |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="Liberals FDP", mar=c(0,0,1,0))
-matrixAFD <- df_s |> filter(prtclede == 6) |> 
+matrixAFD <- dfsel_g |> filter(prtclede == 6) |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="AfD", mar=c(0,0,1,0))
 
 
@@ -302,11 +293,11 @@ DF |> select(attitudenames) |>  prcomp()
 
 # NOTE: use df_s_g for Germany. or df for whole 
 
-df_bel <- df_s[attitudenames]
+df_bel <- dfsel_g[columns]
 
 #x <- RCA(df_bel, alpha = 0.01)
 #print(x)
-x_five <- RCA(df_bel)
+x_five <- RCA(df_bel[attitudenames])
 plot(x_five, module = 1, heat_labels = T)
 plot(x_five, module = 2, heat_labels = T)
 plot(x_five, module = 3, heat_labels = T)
@@ -323,57 +314,37 @@ plot(x_five, module = 5, heatmap=F, margin = 0.5, vertex_five_size = 40, layout 
 plot(x_five, module = 6, heatmap=F, margin = 0.5, vertex_five_size = 40, layout = layout.circle)
 print(x_five)
 
-plot_m1 <- recordPlot()
-
-plot(x_five, module = 1, heatmap=F, margin = 0.5, vertex_five_size = 40) |>
-  tkplot()
 
 ### merging dataframes
 
-# only Germans, all variables
-df_g2 <- raw |> 
-  filter(cntry=="DE")
-df_g4 <- df_g2 |> 
-  filter(freehms <= 5, gincdif <= 5, impcntr <= 4, lrscale <= 10, euftf <= 10)
-# rescale
-df_g3 =df_g4 %>% 
-  mutate(
-    across(c(freehms, gincdif), ~ -1 + 2*(.x - 1)/(5-1)), 
-    across(c(lrscale, euftf), ~ -1 + 2*(.x - 0)/(10-0)), 
-    impcntr = -1 + 2*(impcntr - 1)/(4-1)
-  )
-# flipping
-df_g3$freehms <- df_s$freehms * -1
-df_g3$gincdif <- df_s$gincdif * -1
-df_g3$impcntr <- df_s$impcntr * -1
 # create group varible accoring to RCA
 df_bel$group <- x_five$membership
-df_group <- df_bel[c(1,7)]
+df_group <- df_bel[c("idno","group")]
 # merging 
-df_t <- merge(df_g3, df_group, by = 'idno')
-df_t$group <- as.factor(df_t$group)
+dfgRCA <- merge(dffull_g, df_group, by = 'idno')
+dfgRCA$group <- as.factor(dfgRCA$group)
 
 
 ## find out how groups differ
 
 # take group 7 out, because just 2 people
-df_t <- df_t |>
+dfgRCA <- dfgRCA |>
   filter(group!='7')
 
 #age
-df_t <- df_t |>
+dfgRCA <- dfgRCA |>
   filter(agea<=110)
-ggplot(df_t, aes(x=group, y=agea)) + geom_boxplot()
+ggplot(dfgRCA, aes(x=group, y=agea)) + geom_boxplot()
 
 #gender # 1=male, 2=female
-table(df_t$gndr, df_t$group)
+table(dfgRCA$gndr, dfgRCA$group)
 
 #beliefs
-ggplot(df_t, aes(x=group, y=freehms)) + geom_boxplot()
-ggplot(df_t, aes(x=group, y=gincdif)) + geom_boxplot()
-ggplot(df_t, aes(x=group, y=impcntr)) + geom_boxplot()
-ggplot(df_t, aes(x=group, y=lrscale)) + geom_boxplot()
-ggplot(df_t, aes(x=group, y=euftf)) + geom_boxplot()
+ggplot(dfgRCA, aes(x=group, y=freehms)) + geom_boxplot()
+ggplot(dfgRCA, aes(x=group, y=gincdif)) + geom_boxplot()
+ggplot(dfgRCA, aes(x=group, y=impcntr)) + geom_boxplot()
+ggplot(dfgRCA, aes(x=group, y=lrscale)) + geom_boxplot()
+ggplot(dfgRCA, aes(x=group, y=euftf)) + geom_boxplot()
 
 
 #Values
@@ -388,3 +359,71 @@ ggplot(df_val, aes(x=group, y=Conservation)) + geom_boxplot()
 ggplot(df_val, aes(x=group, y=SelfTranscendence)) + geom_boxplot()
 ggplot(df_val, aes(x=group, y=SelfEnhancement)) + geom_boxplot()
 
+
+
+
+
+
+
+
+
+#     ASSESS
+
+
+
+matrix1 <- df_s |> filter(prtclede == 1) |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="RCAgroup1", mar=c(0,0,1,0))
+matrix2 <- df_s |> filter(prtclede == 2) |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="RCAgroup2", mar=c(0,0,1,0))
+matrix3 <- df_s |> filter(prtclede == 3) |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="RCAgroup3", mar=c(0,0,1,0))
+matrix4 <- df_s |> filter(prtclede == 4) |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="RCAgroup4", mar=c(0,0,1,0))
+matrix5 <- df_s |> filter(prtclede == 5) |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="RCAgroup5", mar=c(0,0,1,0))
+matrix6 <- df_s |> filter(prtclede == 6) |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="RCAgroup6", mar=c(0,0,1,0))
+matrix7 <- df_s |> filter(prtclede == 7) |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="RCAgroup7", mar=c(0,0,1,0))
+
+parties = c("RCAgroup1","RCAgroup2","RCAgroup3","RCAgroup4","RCAgroup5","RCAgroup6","RCAgroup7")
+for (j in 1:length(parties)) {
+  groupname = list(1,2,3,4,5,6,7)[[j]]
+  groupname_long=parties[groupname]
+  GroupCorrmatrix = list(matrixCDU, matrixSPD, matrixLEFT, matrixGREEN, matrixFDP, matrixAFD)[[j]]
+  n_group <- sum(df_s$prtclede==groupname)
+  print(paste(groupname, n_group, sep=": "))
+  nr_good = matrix(nrow=length(attitudenames),ncol=length(attitudenames))
+  for (a in 1:(length(attitudenames))){
+    name = attitudenames[a]
+    for (b in 1:(length(attitudenames))){
+      name2=attitudenames[b]
+      print(paste(a,b, name, name2))
+      random_corrs = c()
+      for (i in 1: 10000){
+        random_group <- df_cor[sample(nrow(df_cor), n_group),]
+        random_corrs[i] = cor(random_group[name], random_group[name2])[1]
+      }
+      group_corr = GroupCorrmatrix$corr[name, name2]
+      mean_rand_corr = mean(random_corrs)
+      std_rand_corr = sd(random_corrs)
+      if (abs(group_corr-mean_rand_corr) > 2 * std_rand_corr){
+        col="green"
+        nr_good[a,b]=1
+      }else{
+        col="red"
+        nr_good[a,b]=0
+      }
+      if (name==name2){xlimval=1.05}else{xlimval=0.4}
+      p1 <- qplot(random_corrs, geom="histogram", binwidth=0.01)+ 
+        xlim(-xlimval, xlimval) + 
+        geom_vline(aes(xintercept=group_corr), col=col) 
+      p1 <- p1+theme(panel.background = element_rect(fill = col, color = 'black'))
+      print(p1)
+      ggsave(
+        paste(paste("figs/", groupname_long, name, name2, sep="_"),".png", sep=""),
+        plot = last_plot(),
+      )
+    }
+  }
+}
