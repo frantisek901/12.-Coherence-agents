@@ -200,8 +200,6 @@ matrix1 <- df |> filter(prtclede == 5) |>
 matrix1 <- df |> filter(prtclede == 6) |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value')
 
-
-
 DF |> left_join(raw) |> filter(atchctr < 8, atchctr <= 10) |> 
   select(attitudenames) |>  cor() |> corrplot(method='number')
 DF |> left_join(raw) |> filter(pray < 6, atchctr <= 7) |> 
@@ -209,3 +207,29 @@ DF |> left_join(raw) |> filter(pray < 6, atchctr <= 7) |>
 
 # Principal Component Analysis
 DF |> select(attitudenames) |>  prcomp()
+
+
+
+
+
+
+# Jan
+
+filterbasics <- raw |> select(idno, cntry, gndr)
+DF |> left_join(filterbasics) |> filter(cntry == "AT") |> pull(ValueType) |> table() |> plot()
+DF |> left_join(filterbasics) |> filter(cntry == "CH") |> pull(ValueType) |> table() |> plot()
+DF |> left_join(filterbasics) |> filter(cntry == "DE") |> pull(ValueType) |> table() |> plot()
+DF |> left_join(filterbasics) |> filter(cntry == "NL") |> pull(ValueType) |> table() |> plot()
+DF |> left_join(filterbasics) |> filter(cntry == "GB") |> pull(ValueType) |> table() |> plot()
+DF |> left_join(filterbasics) |> filter(cntry == "FR") |> pull(ValueType) |> table() |> plot()
+DF |> left_join(filterbasics) |> filter(cntry == "SE") |> pull(ValueType) |> table() |> plot()
+DF |> left_join(filterbasics) |> filter(cntry == "PL") |> pull(ValueType) |> table() |> plot()
+DF |> left_join(filterbasics) |> filter(cntry == "CZ") |> pull(ValueType) |> table() |> plot()
+DF |> left_join(filterbasics) |> filter(cntry == "EE") |> pull(ValueType) |> table() |> plot()
+
+
+
+
+
+
+
