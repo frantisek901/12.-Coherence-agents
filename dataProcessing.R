@@ -30,21 +30,27 @@ library(forcats)
 library(writexl)
 library(corrplot) 
 library(tidyverse)
+library(RCA)
+library(igraph)
+library(ggplot2)
 
 # Loading and cleaning data -----------------------------------------------
-raw = read_csv('ESS9e03_1.csv') 
+raw = read_csv('ESS9e03_1.csv')
+#raw = read_csv("ESS9e03_1_complete.csv")
 # Reading data 
 # from .csv file:
-df <- raw |> 
-  filter(cntry=="DE")  |>
-  filter(prtclede<10)
+#df <- raw |> 
+  #filter(cntry=="DE")
 
 df = read_csv('ESS9e03_1.csv') %>% 
   # Selection of needed variables:
-  select(idno, freehms, gincdif, lrscale, impcntr, euftf, ipcrtiv:impfun) %>% 
+  dplyr::select(idno, freehms, gincdif, lrscale, impcntr, euftf, cntry, ipcrtiv:impfun) %>% 
   # Filtering the cases -- cases with missing values on believes variables deleted:
   filter(freehms <= 5, gincdif <= 5, impcntr <= 4, 
          lrscale <= 10, euftf <= 10) 
+
+df_g <- df |> 
+  filter(cntry=="DE")
 # %>%
 #   # Another filtering -- cases where misses at least one human value are deleted:
 #   rowwise() %>% filter(sum(across(ipcrtiv:impfun, ~ .x<=6 )) == 21) %>% ungroup()
@@ -54,11 +60,11 @@ df = read_csv('ESS9e03_1.csv') %>%
 
 # Scaling data to values within [-1, 1]. 
 # v' = -1 + 2* (v-m)/(M-m), where m is the lowest, M the highest possible answer
-df_s =df %>% 
+df_s =df_g %>% 
   mutate(
-   across(c(freehms, gincdif), ~ -1 + (.x - 1)/(5-1)), 
-   across(c(lrscale, euftf), ~ -1 + (.x - 0)/(10-0)), 
-   impcntr = -1 + (impcntr - 1)/(4-1)
+   across(c(freehms, gincdif), ~ -1 + 2*(.x - 1)/(5-1)), 
+   across(c(lrscale, euftf), ~ -1 + 2*(.x - 0)/(10-0)), 
+   impcntr = -1 + 2*(impcntr - 1)/(4-1)
   )
 ## BEWARE!!! This code produces scale [-1, 0], not [-1, +1],
 ## conceptually it makes no difference, we have all at the same scale, 
@@ -88,7 +94,7 @@ valuenames <- c("ipcrtiv", "imprich", "ipeqopt", "ipshabt", "impsafe", "impdiff"
   "ipmodst", "ipgdtim", "impfree", "iphlppl", "ipsuces", "ipstrgv", "ipadvnt", "ipbhprp",
   "iprspot", "iplylfr", "impenv",  "imptrad", "impfun") 
 
-df_ten <- df |> select(idno, ipcrtiv:impfun) |> #rowwise() |> 
+df_ten <- df |> dplyr::select(idno, ipcrtiv:impfun, cntry) |> #rowwise() |> 
   mutate(Conformity = (!!sym(valuenames[7]) + !!sym(valuenames[16])/2),
          Tradition = (!!sym(valuenames[9]) + !!sym(valuenames[20])/2),
          Benevolence = (!!sym(valuenames[12]) + !!sym(valuenames[18])/2),
@@ -163,7 +169,6 @@ text(mds$points[,1],mds$points[,2],labels = row.names(mds$points))
 
 
 
-
 # Correlations on Subgroups
 
 DF <- df |> left_join(df_four)
@@ -209,3 +214,92 @@ DF |> left_join(raw) |> filter(pray < 6, atchctr <= 7) |>
 
 # Principal Component Analysis
 DF |> select(attitudenames) |>  prcomp()
+
+### RCA:
+
+df_bel <- df_s[1:6]
+
+#x <- RCA(df_bel, alpha = 0.01)
+#print(x)
+x_five <- RCA(df_bel)
+plot(x_five, module = 1, heat_labels = T)
+plot(x_five, module = 2, heat_labels = T)
+plot(x_five, module = 3, heat_labels = T)
+plot(x_five, module = 4, heat_labels = T)
+plot(x_five, module = 5, heat_labels = T)
+plot(x_five, module = 6, heatmap=F, margin = 0.5, vertex_five_size = 40)
+plot(x_five, module = 2, heatmap=F, margin = 0.5, vertex_five_size = 40)
+summary(x_five)
+plot(x_five, module = 1, heatmap=F, margin = 0.5, vertex_five_size = 40, layout = layout.circle)
+plot(x_five, module = 2, heatmap=F, margin = 0.5, vertex_five_size = 40, layout = layout.circle)
+plot(x_five, module = 3, heatmap=F, margin = 0.5, vertex_five_size = 40, layout = layout.circle)
+plot(x_five, module = 4, heatmap=F, margin = 0.5, vertex_five_size = 40, layout = layout.circle)
+plot(x_five, module = 5, heatmap=F, margin = 0.5, vertex_five_size = 40, layout = layout.circle)
+plot(x_five, module = 6, heatmap=F, margin = 0.5, vertex_five_size = 40, layout = layout.circle)
+print(x_five)
+
+plot_m1 <- recordPlot()
+
+plot(x_five, module = 1, heatmap=F, margin = 0.5, vertex_five_size = 40) |>
+  tkplot()
+
+### merging dataframes
+
+# only Germans, all variables
+df_g2 <- raw |> 
+  filter(cntry=="DE")
+df_g4 <- df_g2 |> 
+  filter(freehms <= 5, gincdif <= 5, impcntr <= 4, lrscale <= 10, euftf <= 10)
+# rescale
+df_g3 =df_g4 %>% 
+  mutate(
+    across(c(freehms, gincdif), ~ -1 + 2*(.x - 1)/(5-1)), 
+    across(c(lrscale, euftf), ~ -1 + 2*(.x - 0)/(10-0)), 
+    impcntr = -1 + 2*(impcntr - 1)/(4-1)
+  )
+# flipping
+df_g3$freehms <- df_s$freehms * -1
+df_g3$gincdif <- df_s$gincdif * -1
+df_g3$impcntr <- df_s$impcntr * -1
+# create group varible accoring to RCA
+df_bel$group <- x_five$membership
+df_group <- df_bel[c(1,7)]
+# merging 
+df_t <- merge(df_g3, df_group, by = 'idno')
+df_t$group <- as.factor(df_t$group)
+
+
+## find out how groups differ
+
+# take group 7 out, because just 2 people
+df_t <- df_t |>
+  filter(group!='7')
+
+#age
+df_t <- df_t |>
+  filter(agea<=110)
+ggplot(df_t, aes(x=group, y=agea)) + geom_boxplot()
+
+#gender # 1=male, 2=female
+table(df_t$gndr, df_t$group)
+
+#beliefs
+ggplot(df_t, aes(x=group, y=freehms)) + geom_boxplot()
+ggplot(df_t, aes(x=group, y=gincdif)) + geom_boxplot()
+ggplot(df_t, aes(x=group, y=impcntr)) + geom_boxplot()
+ggplot(df_t, aes(x=group, y=lrscale)) + geom_boxplot()
+ggplot(df_t, aes(x=group, y=euftf)) + geom_boxplot()
+
+
+#Values
+df_ten_g <- df_ten |> 
+  filter(cntry=="DE")
+# merging value and group
+df_val <- merge(df_ten, df_group, by = 'idno')
+df_val$group <- as.factor(df_val$group)
+
+ggplot(df_val, aes(x=group, y=Openness)) + geom_boxplot()
+ggplot(df_val, aes(x=group, y=Conservation)) + geom_boxplot()
+ggplot(df_val, aes(x=group, y=SelfTranscendence)) + geom_boxplot()
+ggplot(df_val, aes(x=group, y=SelfEnhancement)) + geom_boxplot()
+
