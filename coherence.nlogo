@@ -16,19 +16,114 @@
 ;; Agents operate on communication network. It means that they offers their believes and receive the believes only from nodes of the network they have an edge with. For now there is no update of the network.
 
 
+;; HEAD STUFF
+extensions [nw matrix csv]
+
+turtles-own [idno belief_vector group]
+
+
 
 ;; SETUP
 to setup
+;- Clear everything: DONE!
+  ca
 
-;- Initialize communication network
+;- Initialize communication network: DONE!
+  initialize-comm-network
 
 ;- Set agents variables
+  set-agents
 
 ;- Set links variables
+  set-links
 
 ;- Reset ticks
+  reset-ticks
 
 end
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;   S E T U P   P R O C E D U R E S   ;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to initialize-comm-network
+  ;; Which kind of network we are for?
+  ;; Let's start with Small-World network, but other might come later, let's also prepare for it!
+  (ifelse
+    network_type = "Watts" [
+      resize-world (0 - round(sqrt(N))) round(sqrt(N)) (0 - round(sqrt(N))) round(sqrt(N))
+      nw:generate-watts-strogatz turtles links N neis rewiring [ fd (round(sqrt(N)) - 1) ]
+    ]
+    network_type = "Kleinberg" [
+      resize-world 0 (round(sqrt(N)) - 1) 0 (round(sqrt(N)) - 1)
+      nw:generate-small-world turtles links round(sqrt(N)) round(sqrt(N)) 2.0 toroidial_Kleinberg?
+      (foreach (sort turtles) (sort patches) [ [t p] -> ask t [ move-to p ] ])
+    ]
+    network_type = "Barabasi" [
+      resize-world (0 - round(sqrt(N))) round(sqrt(N)) (0 - round(sqrt(N))) round(sqrt(N))
+      nw:generate-preferential-attachment turtles links N min_degree [ fd (round(sqrt(N)) - 1) ]
+    ]
+    network_type = "random" [
+      resize-world (0 - round(sqrt(N))) round(sqrt(N)) (0 - round(sqrt(N))) round(sqrt(N))
+      nw:generate-random turtles links N rewiring [ fd (round(sqrt(N)) - 1) ]
+    ]
+    network_type = "Bruce" [
+      crt N [setxy random-xcor random-ycor]
+      ask turtles [
+        repeat min_degree [
+          create-link-with min-one-of (other turtles with [not link-neighbor? myself]) [distance myself]
+         ]
+       ]
+    ]
+    ; elsecommands: network_type = "OWN"
+    [
+      ifelse file-exists? network_name and file-exists? agents_name [
+        file-open agents_name
+        set N file-read
+        file-close
+        resize-world (0 - round(sqrt(N))) round(sqrt(N)) (0 - round(sqrt(N))) round(sqrt(N))
+        nw:load-matrix network_name turtles links [ fd (round(sqrt(N)) - 1) ]
+      ][print (word "FILE NOT FOUND! You have to put alongside the model these files '" network_name "' and '" agents_name "' describing your network") ]
+  ])
+
+  ;; Let's set the common size of the seen world for every type of network:
+  set-patch-size 500 / world-width
+end
+
+
+to set-agents
+  (ifelse
+    set_agents = "OWN" [
+      file-close
+      file-open agents_name
+      set N file-read
+      print (word "File describes " N " agents using these variables:\n" file-read-line)
+      (foreach (sort turtles) [ [t] ->
+        ask t [
+          let line csv:from-row file-read-line
+          let bv but-first (but-last (line))
+          set belief_vector bv
+          set idno first line
+          set group last line
+          show (word "Length: " length(bv) ", Group: " group ", ID: " idno ", Believes: " bv ", Min: " min(bv) ", Max: " max(bv))
+        ]
+      ])
+
+      file-close
+    ]
+    ; elsecommands: set_agents = "random"
+    [
+
+
+  ])
+
+end
+
+
+to set-links
+
+end
+
 
 
 ;; GO
@@ -55,31 +150,227 @@ end
 
 @#$#@#$#@
 GRAPHICS-WINDOW
-210
+204
 10
-647
-448
+645
+452
 -1
 -1
-13.0
+5.2631578947368425
 1
 10
 1
 1
 1
 0
+0
+0
 1
-1
-1
--16
-16
--16
-16
+-47
+47
+-47
+47
 0
 0
 1
 ticks
 30.0
+
+BUTTON
+11
+24
+74
+57
+NIL
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+74
+24
+137
+57
+NIL
+go
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+0
+
+BUTTON
+137
+24
+204
+57
+1-step
+go
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+0
+
+CHOOSER
+11
+57
+103
+102
+network_type
+network_type
+"random" "Watts" "Kleinberg" "Barabasi" "Bruce" "OWN"
+1
+
+SLIDER
+11
+101
+204
+134
+N
+N
+100
+5000
+2203.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+10
+133
+102
+166
+neis
+neis
+1
+50
+2.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+101
+133
+193
+166
+rewiring
+rewiring
+0.001
+1
+0.066
+0.001
+1
+NIL
+HORIZONTAL
+
+SWITCH
+11
+165
+153
+198
+toroidial_Kleinberg?
+toroidial_Kleinberg?
+0
+1
+-1000
+
+SLIDER
+11
+198
+157
+231
+clustering_exponent
+clustering_exponent
+0.01
+10
+0.01
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+10
+231
+102
+264
+min_degree
+min_degree
+1
+10
+2.0
+1
+1
+NIL
+HORIZONTAL
+
+BUTTON
+103
+57
+204
+90
+save network
+nw:save-matrix network_name 
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+INPUTBOX
+714
+20
+955
+80
+network_name
+network.txt
+1
+0
+String
+
+CHOOSER
+12
+269
+150
+314
+set_agents
+set_agents
+"random" "OWN"
+1
+
+INPUTBOX
+715
+80
+954
+140
+agents_name
+agents.csv
+1
+0
+String
 
 @#$#@#$#@
 ## The purpose of the model  
