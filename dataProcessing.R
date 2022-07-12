@@ -302,7 +302,7 @@ DF |> select(attitudenames) |>  prcomp()
 
 # NOTE: use df_s_g for Germany. or df for whole 
 
-df_bel <- df_s[1:6]
+df_bel <- df_s[attitudenames]
 
 #x <- RCA(df_bel, alpha = 0.01)
 #print(x)
