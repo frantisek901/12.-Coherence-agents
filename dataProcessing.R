@@ -88,7 +88,7 @@ valuenames <- c("ipcrtiv", "imprich", "ipeqopt", "ipshabt", "impsafe", "impdiff"
   "ipmodst", "ipgdtim", "impfree", "iphlppl", "ipsuces", "ipstrgv", "ipadvnt", "ipbhprp",
   "iprspot", "iplylfr", "impenv",  "imptrad", "impfun") 
 
-df_ten <- dfsel |> dplyr::select(idno, ipcrtiv:impfun, cntry) |> #rowwise() |> 
+df_ten <- dffull |> dplyr::select(idno, ipcrtiv:impfun, cntry) |> #rowwise() |> 
   mutate(Conformity = (!!sym(valuenames[7]) + !!sym(valuenames[16])/2),
          Tradition = (!!sym(valuenames[9]) + !!sym(valuenames[20])/2),
          Benevolence = (!!sym(valuenames[12]) + !!sym(valuenames[18])/2),
@@ -108,21 +108,23 @@ df_ten <- dfsel |> dplyr::select(idno, ipcrtiv:impfun, cntry) |> #rowwise() |>
          SelfEnhancement = (Hedonism + Achievement + Power)/3,
          Conservation = (Security + Conformity + Tradition)/3,
          SelfTranscendence = (Benevolence + Universalism)/2)
-df_four <- df_ten[sample(nrow(df_ten)),] |> 
-  select(idno, Openness:SelfTranscendence) |> 
-  pivot_longer(Openness:SelfTranscendence) |> 
-  group_by(idno) |> 
-  mutate(rank = rank(value)) |> 
-  group_by(idno) |> 
-  summarize(Value1 = name[value == max(value)][1], 
-            Value2 = name[value == min(value)][1],
-            Consistent =
-              str_starts(Value1,"Self") & str_starts(Value2,"Self") |
-              Value1 == "Openness" & Value2 == "Conservation" |
-              Value2 == "Openness" & Value1 == "Conservation") |> 
-  mutate(ValueType = if_else(Consistent, Value1, "Erratic"))
 
-##
+# Old version: here, when two max values are equally large, one is chosen randomly.
+#df_four <- df_ten[sample(nrow(df_ten)),] |> 
+#  select(idno, Openness:SelfTranscendence) |> 
+#  pivot_longer(Openness:SelfTranscendence) |> 
+#  group_by(idno) |> 
+#  mutate(rank = rank(value)) |> 
+#  group_by(idno) |> 
+#  summarize(Value1 = name[value == max(value)][1], 
+#            Value2 = name[value == min(value)][1],
+#            Consistent =
+#              str_starts(Value1,"Self") & str_starts(Value2,"Self") |
+#              Value1 == "Openness" & Value2 == "Conservation" |
+#              Value2 == "Openness" & Value1 == "Conservation") |> 
+#  mutate(ValueType = if_else(Consistent, Value1, "Erratic"))
+
+# New version: here, when two max values are equally large, the observation is discarded
 df_four <- df_ten[sample(nrow(df_ten)),] |> 
   select(idno, Openness:SelfTranscendence) |> 
   pivot_longer(Openness:SelfTranscendence) |> 
@@ -174,39 +176,43 @@ table(DF$ValueType)
 
 table(dfsel$prtclede)
 
-matrixCDU <- dfsel_g |> filter(prtclede == 1) |> 
+matrixALL <- dfsel_gp |> 
+  select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="all parties", mar=c(0,0,1,0))
+matrixCDU <- dfsel_gp |> filter(prtclede == 1) |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="CDU/CSU", mar=c(0,0,1,0))
-matrixSPD <- dfsel_g |> filter(prtclede == 2) |> 
+matrixSPD <- dfsel_gp |> filter(prtclede == 2) |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="SPD", mar=c(0,0,1,0))
-matrixLEFT <- dfsel_g |> filter(prtclede == 3) |> 
+matrixLEFT <- dfsel_gp |> filter(prtclede == 3) |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="Left", mar=c(0,0,1,0))
-matrixGREEN <- dfsel_g |> filter(prtclede == 4) |> 
+matrixGREEN <- dfsel_gp |> filter(prtclede == 4) |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="Greens", mar=c(0,0,1,0))
-matrixFDP <- dfsel_g |> filter(prtclede == 5) |> 
+matrixFDP <- dfsel_gp |> filter(prtclede == 5) |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="Liberals FDP", mar=c(0,0,1,0))
-matrixAFD <- dfsel_g |> filter(prtclede == 6) |> 
+matrixAFD <- dfsel_gp |> filter(prtclede == 6) |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="AfD", mar=c(0,0,1,0))
 
 
 
 # Evaluate goodness of clustering for values!
-for (i in 1:3) {
-  groupname = list("SelfEnhancement", "Openness", "Conservation")[[i]]
-  GroupCorrmatrix = list(matrixS, matrixO, matrixC)[[i]]
-  n_group <- sum(df_four$ValueType==groupname)
-  print(paste(groupname, n_group, sep=": "))
+table(DF$ValueType)
+for (j in 1:3) {
+  groupname = list("SelfEnhancement", "Openness", "Conservation")[[j]]
+  group = DF |> filter(ValueType==groupname)
+  print(paste(groupname, nrow(group), sep=": "))
   nr_good = matrix(nrow=length(attitudenames),ncol=length(attitudenames))
   for (a in 1:(length(attitudenames))){
     name = attitudenames[a]
-    for (b in 1:(length(attitudenames))){
+    for (b in 1:a){
       name2=attitudenames[b]
       print(paste(a,b, name, name2))
+      
+      group_corr = cor(group[name], group[name2])[1] #GroupCorrmatrix$corr[name, name2]
+      
       random_corrs = c()
-      for (i in 1: 10000){
-          random_group <- df_cor[sample(nrow(df_cor), n_group),]
+      for (i in 1: 1000){
+          random_group <- DF[sample(nrow(DF), nrow(group)),]
           random_corrs[i] = cor(random_group[name], random_group[name2])[1]
         }
-        group_corr = GroupCorrmatrix$corr[name, name2]
         mean_rand_corr = mean(random_corrs)
         std_rand_corr = sd(random_corrs)
         if (abs(group_corr-mean_rand_corr) > 2 * std_rand_corr){
@@ -240,23 +246,23 @@ for (i in 1:3) {
 
 parties = c("CDUCSU", "SPD", "Left", "Green", "FDP", "AfD")
 for (j in 1:length(parties)) {
-  groupname = list(1,2,3,4,5,6)[[j]]
-  groupname_long=parties[groupname]
-  GroupCorrmatrix = list(matrixCDU, matrixSPD, matrixLEFT, matrixGREEN, matrixFDP, matrixAFD)[[j]]
-  n_group <- sum(df_s$prtclede==groupname)
-  print(paste(groupname, n_group, sep=": "))
+  groupname = parties[[j]]
+  group = dfsel_gp |>  filter(prtclede==j)
+  print(paste(groupname, nrow(group), sep=": "))
   nr_good = matrix(nrow=length(attitudenames),ncol=length(attitudenames))
   for (a in 1:(length(attitudenames))){
     name = attitudenames[a]
-    for (b in 1:(length(attitudenames))){
+    for (b in 1:a){
       name2=attitudenames[b]
       print(paste(a,b, name, name2))
+      
+      group_corr = cor(group[name], group[name2])[1] #GroupCorrmatrix$corr[name, name2]
+      
       random_corrs = c()
-      for (i in 1: 10000){
-        random_group <- df_cor[sample(nrow(df_cor), n_group),]
+      for (i in 1: 1000){
+        random_group <- dfsel_gp[sample(nrow(dfsel_gp), nrow(group)),]
         random_corrs[i] = cor(random_group[name], random_group[name2])[1]
       }
-      group_corr = GroupCorrmatrix$corr[name, name2]
       mean_rand_corr = mean(random_corrs)
       std_rand_corr = sd(random_corrs)
       if (abs(group_corr-mean_rand_corr) > 2 * std_rand_corr){
@@ -266,14 +272,13 @@ for (j in 1:length(parties)) {
         col="red"
         nr_good[a,b]=0
       }
-      if (name==name2){xlimval=1.05}else{xlimval=0.4}
+      if (name==name2){xlimval=1.05}else{xlimval=0.8}
       p1 <- qplot(random_corrs, geom="histogram", binwidth=0.01)+ 
         xlim(-xlimval, xlimval) + 
         geom_vline(aes(xintercept=group_corr), col=col) 
-      p1 <- p1+theme(panel.background = element_rect(fill = col, color = 'black'))
       print(p1)
       ggsave(
-        paste(paste("figs/", groupname_long, name, name2, sep="_"),".png", sep=""),
+        paste(paste("figs/", groupname, name, name2, sep="_"),".png", sep=""),
         plot = last_plot(),
       )
     }
@@ -315,7 +320,7 @@ DF |> left_join(filterbasics) |> filter(cntry == "EE") |> pull(ValueType) |> tab
 
 ### RCA:
 
-# NOTE: use df_s_g for Germany. or df for whole 
+# NOTE: use df_s_g for Germany. or dffull for whole 
 
 df_bel <- dfsel_g[columns]
 
@@ -395,40 +400,40 @@ ggplot(df_val, aes(x=group, y=SelfEnhancement)) + geom_boxplot()
 
 
 
-matrix1 <- df_s |> filter(prtclede == 1) |> 
+matrix1 <- df_bel |> filter(group == "1") |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="RCAgroup1", mar=c(0,0,1,0))
-matrix2 <- df_s |> filter(prtclede == 2) |> 
+matrix2 <-df_bel |> filter(group == "2") |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="RCAgroup2", mar=c(0,0,1,0))
-matrix3 <- df_s |> filter(prtclede == 3) |> 
+matrix3 <- df_bel |> filter(group == "3") |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="RCAgroup3", mar=c(0,0,1,0))
-matrix4 <- df_s |> filter(prtclede == 4) |> 
+matrix4 <-df_bel |> filter(group == "4")|> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="RCAgroup4", mar=c(0,0,1,0))
-matrix5 <- df_s |> filter(prtclede == 5) |> 
+matrix5 <- df_bel |> filter(group == "5") |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="RCAgroup5", mar=c(0,0,1,0))
-matrix6 <- df_s |> filter(prtclede == 6) |> 
+matrix6 <- df_bel |> filter(group == "6") |> 
   select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="RCAgroup6", mar=c(0,0,1,0))
-matrix7 <- df_s |> filter(prtclede == 7) |> 
-  select(attitudenames) |>  cor() |> corrplot(method='number', insig='p-value', title="RCAgroup7", mar=c(0,0,1,0))
 
-parties = c("RCAgroup1","RCAgroup2","RCAgroup3","RCAgroup4","RCAgroup5","RCAgroup6","RCAgroup7")
-for (j in 1:length(parties)) {
-  groupname = list(1,2,3,4,5,6,7)[[j]]
-  groupname_long=parties[groupname]
-  GroupCorrmatrix = list(matrixCDU, matrixSPD, matrixLEFT, matrixGREEN, matrixFDP, matrixAFD)[[j]]
-  n_group <- sum(df_s$prtclede==groupname)
-  print(paste(groupname, n_group, sep=": "))
+table(dfgRCA$group)
+
+groups = c("RCAgroup1","RCAgroup2","RCAgroup3","RCAgroup4","RCAgroup5","RCAgroup6")
+for (j in 1:length(groups)) {
+  groupname = groups[[j]]
+  group = dfgRCA |>  filter(group==j)
+  print(paste(groupname, nrow(group), sep=": "))
   nr_good = matrix(nrow=length(attitudenames),ncol=length(attitudenames))
-  for (a in 1:(length(attitudenames))){
+  for (a in 2:(length(attitudenames))){
     name = attitudenames[a]
-    for (b in 1:(length(attitudenames))){
+    for (b in 1:(a-1)){
       name2=attitudenames[b]
       print(paste(a,b, name, name2))
+      
+      group_corr = cor(group[name], group[name2])[1] #GroupCorrmatrix$corr[name, name2]
+      
       random_corrs = c()
-      for (i in 1: 10000){
-        random_group <- df_cor[sample(nrow(df_cor), n_group),]
+      for (i in 1: 1000){
+        random_group <- dfgRCA[sample(nrow(dfgRCA), nrow(group)),]
         random_corrs[i] = cor(random_group[name], random_group[name2])[1]
       }
-      group_corr = GroupCorrmatrix$corr[name, name2]
       mean_rand_corr = mean(random_corrs)
       std_rand_corr = sd(random_corrs)
       if (abs(group_corr-mean_rand_corr) > 2 * std_rand_corr){
@@ -438,14 +443,13 @@ for (j in 1:length(parties)) {
         col="red"
         nr_good[a,b]=0
       }
-      if (name==name2){xlimval=1.05}else{xlimval=0.4}
+      if (name==name2){xlimval=1.05}else{xlimval=1}
       p1 <- qplot(random_corrs, geom="histogram", binwidth=0.01)+ 
         xlim(-xlimval, xlimval) + 
         geom_vline(aes(xintercept=group_corr), col=col) 
-      p1 <- p1+theme(panel.background = element_rect(fill = col, color = 'black'))
       print(p1)
       ggsave(
-        paste(paste("figs/", groupname_long, name, name2, sep="_"),".png", sep=""),
+        paste(paste("figs/", groupname, name, name2, sep="_"),".png", sep=""),
         plot = last_plot(),
       )
     }
