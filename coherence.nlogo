@@ -17,9 +17,11 @@
 
 
 ;; HEAD STUFF
-extensions [nw matrix csv]
+extensions [nw matrix csv table]
 
 turtles-own [idno belief_vector group]
+
+globals [coherency_matrices]
 
 
 
@@ -28,23 +30,73 @@ to setup
 ;- Clear everything: DONE!
   ca
 
+;- Initialize globals: DONE!
+  initialize-globals
+
 ;- Initialize communication network: DONE!
   initialize-comm-network
 
-;- Set agents variables
+;- Set agents variables: DONE!
   set-agents
 
-;- Set links variables
+;- Set links variables: NOT NEEDED NOW!
   set-links
 
 ;- Reset ticks
   reset-ticks
-
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;   S E T U P   P R O C E D U R E S   ;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to initialize-globals
+  ;; Now, there is only one global: coherency_matrices, let's initialize it as table!
+  set coherency_matrices table:make
+
+
+;; Following code is just for testing use, now commented out, later we will erase it.
+;  let i  1
+;  while [i <= 6][
+;    let j 1
+;    let l []
+;    while [j <= 5][
+;      set l lput (n-values 5 [precision (1 - random-float 2) 2]) l
+;      set j j + 1
+;    ]
+;    let m matrix:from-row-list l
+;    table:put coherency_matrices i m
+;    set i  i + 1
+;  ]
+
+
+  ifelse file-exists? coherence_name [
+    file-close
+    file-open coherence_name
+    let consume-vars-names-out csv:from-row file-read-line
+    print "TEST!!!!"
+    print consume-vars-names-out
+    let i 1  ;; index of group/coherence matrix
+    while [not file-at-end?] [
+      let j 1  ;; index of line inside the matrix we create now
+      let l []
+      while [j <= 5][  ;; now we know that we use 5 values, that our matrix is 5x5
+        let fl (butfirst (butlast (butlast (csv:from-row file-read-line))))   ;; also hardcoded: We know that we do not use for consistence matrix the first one and last two values
+        let flp []
+        foreach (fl) [[nx] -> set flp lput (precision (nx) 3) flp ]  ;; just rounding to 3 decimal places, to make matrices better readable
+        set l lput flp l
+        set j j + 1
+      ]
+      let m matrix:from-row-list l
+      table:put coherency_matrices i m
+      set i i + 1
+    ]
+    file-close
+  ][print (word "FILE NOT FOUND! You have to put alongside the model file '" coherence_name "' describing your coherence matrices") ]
+
+    ;; Checking how table with coherency matrices look like.
+    print coherency_matrices
+end
 
 to initialize-comm-network
   ;; Which kind of network we are for?
@@ -105,23 +157,21 @@ to set-agents
           set belief_vector bv
           set idno first line
           set group last line
-          show (word "Length: " length(bv) ", Group: " group ", ID: " idno ", Believes: " bv ", Min: " min(bv) ", Max: " max(bv))
+          ;show (word "Length: " length(bv) ", Group: " group ", ID: " idno ", Believes: " bv ", Min: " min(bv) ", Max: " max(bv))
         ]
       ])
-
       file-close
     ]
     ; elsecommands: set_agents = "random"
     [
-
-
+      ;; NOT NOW!
+      print "We are now go for representation of real respondents, no play with random agents now!"
   ])
-
 end
 
 
 to set-links
-
+  ;; NOT NEEDED NOW!
 end
 
 
@@ -147,13 +197,12 @@ end
 
 
 
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 204
 10
-645
-452
+712
+519
 -1
 -1
 5.2631578947368425
@@ -246,7 +295,7 @@ N
 N
 100
 5000
-2203.0
+2201.0
 1
 1
 NIL
@@ -341,10 +390,10 @@ NIL
 1
 
 INPUTBOX
-714
-20
-955
-80
+715
+21
+954
+81
 network_name
 network.txt
 1
@@ -368,6 +417,17 @@ INPUTBOX
 140
 agents_name
 agents.csv
+1
+0
+String
+
+INPUTBOX
+715
+140
+954
+200
+coherence_name
+Correlationmatrix.csv
 1
 0
 String
