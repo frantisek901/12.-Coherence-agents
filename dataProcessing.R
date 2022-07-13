@@ -395,6 +395,10 @@ ggplot(df_val, aes(x=group, y=SelfEnhancement)) + geom_boxplot()
 
 
 
+df_bel |> mutate(group = x_five$membership) |> 
+  pivot_longer(attitudenames) |>
+  ggplot(aes(value)) + geom_histogram() + facet_wrap(name~group, ncol=9)
+
 
 #     ASSESS
 
