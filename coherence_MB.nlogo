@@ -1,6 +1,6 @@
 ;;;;; Model using coherence agents -- written from scratch
 
-;; Updated: 2022-07-12 FranČesko
+;; Updated: 2022-07-12 FranCesko
 
 ;; Brief idea:
 ;; -----------
@@ -185,13 +185,13 @@ to go
 
   ask links [
     ;; The core procedure happens only with probability ALPHA for avery connected pair of agents:
-    if alpha > random-float 1 [be-socially-influenced] ; process 1
+    if alpha > random-float 1 [be-socially-influenced] ; process 1 and 4 (dropping of link process inside)
   ]
 
   ;; Self-coherency checks and new links creation will do agents in random order:
   ask turtles [
     ;; Self-coherency tries and checks
-    if beta > random-float 1 [check-self-coherency]  ; process 2 and 4 (dropping of link process inside)
+    if beta > random-float 1 [check-self-coherency]  ; process 2
 
     ;; establishing of new random link
     if kappa > random-float 1 [add-new-link] ; process 3
@@ -237,9 +237,22 @@ to be-socially-influenced
     ;; TRUE means that belief was rejected, e.g. there is no change in previous/belief_vector:
     let belief_reject (belief_vector = previous_belief_vector)
 
-    ; dropping link process 3
-    if belief_reject AND gamma > random-float 1 [ask myself [die]]
+    ; dropping link process 4
+    if (euclid (belief_vector) ([belief_vector] of sender)) > belief_distance_treshold AND belief_reject AND gamma > random-float 1 [
+      ask myself [die]
+    ]
   ]
+end
+
+to-report euclid [one second]
+  let l 0
+  let distances []
+  while [l < length(one)] [
+    set distances lput (((item l one) - (item l second)) ^ 2) distances
+    set l l + 1
+  ]
+  ;if (sqrt(sum(distances)) / sqrt(length(distances))) > belief_distance_treshold [print (sqrt(sum(distances)) / sqrt(length(distances)))]
+  report (sqrt(sum(distances)) / sqrt(length(distances)))
 end
 
 
@@ -265,7 +278,7 @@ to change-belief [old new group_num belief_position]
   let matrix table:get coherency_matrices [group] of self ; get group of agent
   let old_coherency coherence-function (matrix) (old)
   let new_coherency coherence-function (matrix) (new)
-  let diff_coherency old_coherency - new_coherency
+  let diff_coherency new_coherency - old_coherency
 
   let prob 1 / ( 1 + exp (- k * diff_coherency))
   if prob > random-float 1 [
@@ -294,8 +307,8 @@ end
 GRAPHICS-WINDOW
 204
 10
-710
-517
+712
+519
 -1
 -1
 5.2631578947368425
@@ -312,8 +325,8 @@ GRAPHICS-WINDOW
 47
 -47
 47
-0
-0
+1
+1
 1
 ticks
 30.0
@@ -377,7 +390,7 @@ CHOOSER
 network_type
 network_type
 "random" "Watts" "Kleinberg" "Barabasi" "Bruce" "OWN"
-4
+1
 
 SLIDER
 11
@@ -544,7 +557,7 @@ conformity_tendency
 conformity_tendency
 0
 1
-0.5
+0.2
 0.05
 1
 NIL
@@ -559,7 +572,7 @@ craziness_of_new_belief
 craziness_of_new_belief
 0
 1
-0.1
+0.3
 0.05
 1
 NIL
@@ -574,7 +587,7 @@ alpha
 alpha
 0
 1
-1.0
+0.1
 0.05
 1
 NIL
@@ -589,7 +602,7 @@ beta
 beta
 0
 1
-0.1
+1.0
 0.05
 1
 NIL
@@ -604,7 +617,7 @@ kappa
 kappa
 0
 1
-0.02
+0.03
 0.01
 1
 NIL
@@ -619,7 +632,7 @@ gamma
 gamma
 0
 1
-0.01
+0.5
 0.01
 1
 NIL
@@ -634,7 +647,7 @@ x_belief
 x_belief
 1
 5
-1.0
+3.0
 1
 1
 NIL
@@ -649,8 +662,23 @@ y_belief
 y_belief
 1
 5
-3.0
+5.0
 1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+973
+107
+1158
+140
+belief_distance_treshold
+belief_distance_treshold
+0
+10
+1.0
+.1
 1
 NIL
 HORIZONTAL
