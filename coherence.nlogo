@@ -54,28 +54,13 @@ to initialize-globals
   ;; Now, there is only one global: coherency_matrices, let's initialize it as table!
   set coherency_matrices table:make
 
-
-;; Following code is just for testing use, now commented out, later we will erase it.
-;  let i  1
-;  while [i <= 6][
-;    let j 1
-;    let l []
-;    while [j <= 5][
-;      set l lput (n-values 5 [precision (1 - random-float 2) 2]) l
-;      set j j + 1
-;    ]
-;    let m matrix:from-row-list l
-;    table:put coherency_matrices i m
-;    set i  i + 1
-;  ]
-
-
+  ;; main procedure for reading coherency matrices in:
   ifelse file-exists? coherence_name [
     file-close
     file-open coherence_name
     let consume-vars-names-out csv:from-row file-read-line
-    print "TEST!!!!"
-    print consume-vars-names-out
+    ;print "TEST!!!!"
+    ;print consume-vars-names-out
     let i 1  ;; index of group/coherence matrix
     while [not file-at-end?] [
       let j 1  ;; index of line inside the matrix we create now
@@ -95,7 +80,7 @@ to initialize-globals
   ][print (word "FILE NOT FOUND! You have to put alongside the model file '" coherence_name "' describing your coherence matrices") ]
 
     ;; Checking how table with coherency matrices look like.
-    print coherency_matrices
+    ;print coherency_matrices
 end
 
 to initialize-comm-network
@@ -164,8 +149,11 @@ to set-agents
     ]
     ; elsecommands: set_agents = "random"
     [
-      ;; NOT NOW!
-      print "We are now go for representation of real respondents, no play with random agents now!"
+      ;; For the Bruce:
+      ask turtles [
+        set belief_vector (n-values 5 [precision (1 - random-float 2) 3])
+        set group 1 + random 5
+      ]
   ])
 end
 
@@ -178,21 +166,77 @@ end
 
 ;; GO
 to go
+  ;; We decided to do basic belives update based on links,
+  ;; it ensures that in a round one agent might influence another,
+  ;; but another can't influence one at the same round.
+  ask links [
+    ;; The core procedure happens only with probability ALPHA for avery connected pair of agents:
+    if alpha > random-float 1 [be-socially-influenced]
+  ]
 
-;;Agents operate in random order.
+  ;; Self-coherency checks and new links creation will do agents in random order:
+  ask turtles [
+    ;; Self-coherency tries and checks
+    if beta > random-float 1 [check-self-coherency]
 
-;;Agents firstly check their extroversy whether they will offer the belief. For now it will be the individual parameter derrived from random normal distribution. Later we might bring some function like 'Fear of isolation' from Spiral of Silence.
+    ;; establishing of new random link
+    if kappa > random-float 1 [add-new-link]
+  ]
+end
 
-;;Offering agents choose their partner for belief exchange, then they choose their belief and pass it. Note: Now we choose randomly, later we might select partner according prior success of the belief passing, believes closeness, number of successful interactions, ratio of successful interactions etc. We might later choose belief non-randomly, as well: choice might be proportional to the success ratio of passing belief, number of exchanges, or we might generate saliency function (e.g., via Markov matrix) etc.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;   G O   P R O C E D U R E S   ;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;Receiving agents decide whether they want to comunicate about the belief. For now we make it for sure (communication forced by passing agent), but later we might make the probability of communication refusal proportional to belief inconsistency, e.g. the more incosistency the belief makes in the cognitive system of the agent the more probable will the agent communicate about the belief.
+to be-socially-influenced
+  ;; Select who is SENDER and who is RECEIVER
+  let ends shuffle sort both-ends  ;; SORT transforms agent set to list, SHUFFLE randomizes the order
+  let sender first ends  ;; Since we randomized order in the pair of agents we might take the first as SENDER...
+  let receiver last ends  ;; ...and the last as RECEIVER
+  ; print (word "Is later sometimes the first? " (([who] of sender) > ([who] of receiver)) ", because " sender " sends belief to " receiver) ;; just for code-checking...
 
-;;Receiving agents which accept the communication then decide upon the adoption of belief. They compare the consistency of the present value of belief with the consistency of the offered belief and they proportionaly to the difference of these consistencies decide for adoption or against it.
-
-;;All agents update their believes and the next round starts.
-
+  ;; SENDER randomly picks the belief dimension and get her belief value:
+  let message 0  ;; we need to initialize MESSAGE on the level of the link
+  let dimension random 5  ;; same with the dimension, resp. we could directly randomly set the dimension; BTW: sorry for hard-wiring number of dimensions... but we change it later...
+  ask sender [
+    set message item dimension belief_vector
+    ;print (word dimension "; " message "; " belief_vector)  ;; just for code-checking...
+  ]
+  ask receiver [
+    let old belief_vector
+    let new replace-item dimension belief_vector message
+    let change-probability change-belief (old) (new) (group)
+  ]
 
 end
+
+
+
+to check-self-coherency
+
+end
+
+
+
+to drop-link
+
+end
+
+
+
+to add-new-link
+
+end
+
+
+
+to-report change-belief [old new groupX]
+  print (word groupX "; " old "; " new)  ;; just for code-checking...
+
+
+  report 0.5
+end
+
 
 
 
@@ -390,10 +434,10 @@ NIL
 1
 
 INPUTBOX
-715
-21
-954
-81
+9
+308
+204
+368
 network_name
 network.txt
 1
@@ -401,20 +445,20 @@ network.txt
 String
 
 CHOOSER
-12
-269
-150
-314
+9
+265
+147
+310
 set_agents
 set_agents
 "random" "OWN"
-1
+0
 
 INPUTBOX
-715
-80
-954
-140
+9
+367
+204
+427
 agents_name
 agents.csv
 1
@@ -422,15 +466,75 @@ agents.csv
 String
 
 INPUTBOX
-715
-140
-954
-200
+9
+427
+205
+487
 coherence_name
 Correlationmatrix.csv
 1
 0
 String
+
+SLIDER
+720
+15
+892
+48
+alpha
+alpha
+0
+1
+0.5
+0.001
+1
+NIL
+HORIZONTAL
+
+SLIDER
+720
+47
+892
+80
+beta
+beta
+0
+1
+0.5
+0.001
+1
+NIL
+HORIZONTAL
+
+SLIDER
+720
+79
+892
+112
+gamma
+gamma
+0
+1
+0.05
+0.001
+1
+NIL
+HORIZONTAL
+
+SLIDER
+720
+112
+892
+145
+kappa
+kappa
+0
+1.00
+0.005
+0.001
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## The purpose of the model  
