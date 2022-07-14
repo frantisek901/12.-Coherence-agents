@@ -205,7 +205,7 @@ to be-socially-influenced
   ask receiver [
     let old belief_vector
     let new replace-item dimension belief_vector message
-    let change-probability change-belief (old) (new) (group)
+    ;let change-probability change-belief (old) (new) (group)
   ]
 
 end
@@ -230,11 +230,11 @@ end
 
 
 
-to-report change-belief [old new groupX]
-  print (word groupX "; " old "; " new)  ;; just for code-checking...
+to change-belief [old new group_num]
+  print (word group_num "; " old "; " new)  ;; just for code-checking...
 
 
-  report 0.5
+
 end
 
 
@@ -452,7 +452,7 @@ CHOOSER
 set_agents
 set_agents
 "random" "OWN"
-0
+1
 
 INPUTBOX
 9
